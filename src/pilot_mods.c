@@ -16,13 +16,14 @@ struct _pilot_mods_internal
 };
 static _pilot_list(_pilot_mods_internal, g_mods); 
 static char *g_mods_path = NULL;
+static int g_mods_appid = -1;
 
 static struct _pilot_mods_internal *
 _pilot_mods_internal_create(char *name, void *handle, struct pilot_mods *mods);
 static int
-_pilot_mods_load_dir(long flags, short appid, short type, short version);
+_pilot_mods_load_dir(long flags, short type, short version);
 static int
-_pilot_mods_load(char *name, long flags, short appid, short type, short version);
+_pilot_mods_load(char *name, long flags, short type, short version);
 static void *
 _pilot_mods_load_lib(char *name);
 static int
@@ -40,7 +41,8 @@ pilot_mods_load(char *path, long flags, short appid, short type, short version)
 		return -1;
 	if (path && strcmp(g_mods_path, path))
 		return -1;
-	return _pilot_mods_load_dir(flags, appid, type, version);
+	g_mods_appid = appid;
+	return _pilot_mods_load_dir(flags, type, version);
 }
 
 static struct _pilot_mods_internal *
@@ -55,7 +57,7 @@ _pilot_mods_internal_create(char *name, void *handle, struct pilot_mods *mods)
 }
 
 static int
-_pilot_mods_load_dir(long flags, short appid, short type, short version)
+_pilot_mods_load_dir(long flags, short type, short version)
 {
 	int ret = 0;
 	DIR *dir = NULL;
@@ -70,7 +72,7 @@ _pilot_mods_load_dir(long flags, short appid, short type, short version)
 	{
 		if (strstr(entry->d_name, ".so") != NULL)
 		{
-			_pilot_mods_load(entry->d_name, flags, appid, type, version);
+			_pilot_mods_load(entry->d_name, flags, type, version);
 		}
 	}
 	return ret;
@@ -97,7 +99,7 @@ _pilot_mods_load_lib(char *name)
 }
 
 static int
-_pilot_mods_load(char *name, long flags, short appid, short type, short version)
+_pilot_mods_load(char *name, long flags, short type, short version)
 {
 	void *handle;
 	struct pilot_mods *info;
@@ -108,11 +110,7 @@ _pilot_mods_load(char *name, long flags, short appid, short type, short version)
 	info = dlsym(handle, PILOT_MODS_INFO);
 	if (info != NULL)
 	{
-		if ((info->appid != appid) ||
-			((type != 0) && (info->type != type)) ||
-			((version != 0) && 
-				(((version && 0xFF00) != (info->version && 0xFF00)) ||
-				((version && 0x00FF) < (info->version && 0x00FF)))))
+		if (_pilot_mods_check(info, type, version))
 		{
 			dclose(handle);
 			return -1;
@@ -139,6 +137,10 @@ static int
 _pilot_mods_check(struct pilot_mods *mods, short type, short version)
 {
 	int ret = 0;
+	if (mods->appid != g_mods_appid)
+	{
+		ret = -1;
+	}
 	if ((type != 0) && (mods->type != type))
 	{
 		ret = -1;
