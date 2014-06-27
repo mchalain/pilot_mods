@@ -24,6 +24,7 @@ pilot_string_create(char *value, int flags)
 
 struct _pilot_mods_internal
 {
+	char *name;
 	void *handle;
 	struct pilot_mods *mods;
 };
@@ -56,9 +57,11 @@ pilot_mods_load(char *path, long flags, short appid, short type, short version)
 }
 
 static struct _pilot_mods_internal *
-_pilot_mods_internal_create(void *handle, struct pilot_mods *mods)
+_pilot_mods_internal_create(char *name, void *handle, struct pilot_mods *mods)
 {
 		struct _pilot_mods_internal *thiz = malloc(sizeof(*thiz));
+		thiz->name = malloc(strlen(name)+1);
+		strcopy(thiz->name, name);
 		thiz->handle = handle;
 		thiz->mods = mods;
 		return thiz;
@@ -82,10 +85,7 @@ _pilot_mods_load_dir(long flags, short appid, short type, short version)
 		{
 			struct pilot_string *name = pilot_string_create(entry->d_name, 0);
 			pilot_list_append(g_modnames, name);
-			if (!(flags & PILOT_MODS_FLAGSLAZY))
-			{
-				_pilot_mods_load_lib(entry->d_name, flags, appid, type, version);
-			}
+			_pilot_mods_load_lib(entry->d_name, flags, appid, type, version);
 		}
 	}
 	return ret;
@@ -122,8 +122,13 @@ _pilot_mods_load_lib(char *name, long flags, short appid, short type, short vers
 			return -1;
 		}
 
+		if (flags & PILOT_MODS_FLAGSLAZY)
+		{
+			dclose(handle);
+			handle = NULL;
+		}
 		struct _pilot_mods_internal *mods = 
-			_pilot_mods_internal_create(handle, info);
+			_pilot_mods_internal_create(name, handle, info);
 		pilot_list_append(g_mods, mods);
 	}
 	else
@@ -149,6 +154,17 @@ _pilot_mods_check(struct pilot_mods *mods, short type, short version)
 		ret = -1;
 	}
 	return ret;
+}
+
+struct pilot_mods *
+pilot_mods_get(char *name)
+{
+	struct _pilot_mods_internal *mods = pilot_list_first(g_mods);
+	while (strcmp(mods->mods->name, name))
+	{
+		mods = pilot_list_next(g_mods);
+	}
+	return mods->mods;
 }
 
 struct pilot_mods *
