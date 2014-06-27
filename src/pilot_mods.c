@@ -34,9 +34,9 @@ static char *g_mods_path = NULL;
 static struct _pilot_mods_internal *
 _pilot_mods_internal_create(void *handle, struct pilot_mods *mods);
 static int
-_pilot_mods_load_dir(char *path, long flags, short appid, short type, short version);
+_pilot_mods_load_dir(long flags, short appid, short type, short version);
 static int
-_pilot_mods_load_lib(char *path, char *name, long flags, short appid, short type, short version);
+_pilot_mods_load_lib(char *name, long flags, short appid, short type, short version);
 static int
 _pilot_mods_check(struct pilot_mods *mods, short type, short version);
 
@@ -52,7 +52,7 @@ pilot_mods_load(char *path, long flags, short appid, short type, short version)
 		return -1;
 	if (path && strcmp(g_mods_path, path))
 		return -1;
-	return _pilot_mods_load_dir(g_mods_path, flags, appid, type, version);
+	return _pilot_mods_load_dir(flags, appid, type, version);
 }
 
 static struct _pilot_mods_internal *
@@ -65,12 +65,12 @@ _pilot_mods_internal_create(void *handle, struct pilot_mods *mods)
 }
 
 static int
-_pilot_mods_load_dir(char *path, long flags, short appid, short type, short version)
+_pilot_mods_load_dir(long flags, short appid, short type, short version)
 {
 	int ret = 0;
 	DIR *dir = NULL;
 	struct dirent *entry;
-	dir = opendir(path);
+	dir = opendir(g_mods_path);
 	if (dir == NULL)
 	{
 		LOG_DEBUG("%s", strerror(errno));
@@ -84,7 +84,7 @@ _pilot_mods_load_dir(char *path, long flags, short appid, short type, short vers
 			pilot_list_append(g_modnames, name);
 			if (!(flags & PILOT_MODS_FLAGSLAZY))
 			{
-				_pilot_mods_load_lib(path, entry->d_name, flags, appid, type, version);
+				_pilot_mods_load_lib(entry->d_name, flags, appid, type, version);
 			}
 		}
 	}
@@ -92,15 +92,15 @@ _pilot_mods_load_dir(char *path, long flags, short appid, short type, short vers
 }
 
 static int
-_pilot_mods_load_lib(char *path, char *name, long flags, short appid, short type, short version)
+_pilot_mods_load_lib(char *name, long flags, short appid, short type, short version)
 {
 	void *handle;
 	struct pilot_mods *info;
 	int ret = 0;
 	char *fullpath = NULL;
 
-	fullpath = malloc(strlen(path) + strlen(name) + 2);
-	sprintf(fullpath, "%s/%s", path, name);
+	fullpath = malloc(strlen(g_mods_path) + strlen(name) + 2);
+	sprintf(fullpath, "%s/%s", g_mods_path, name);
 
 	handle = dlopen(fullpath, RTLD_LAZY);
 	free(fullpath);
