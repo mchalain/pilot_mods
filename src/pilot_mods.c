@@ -77,10 +77,10 @@ _pilot_mods_load_dir(char *path, long flags, short appid, short type, short vers
 			}
 			else
 			{
-				char *completpath = malloc(strlen(path) + strlen(entry->d_name) + 2);
-				sprintf(completpath, "%s/%s", path, entry->d_name);
-				_pilot_mods_load_lib(completpath, flags, appid, type, version);
-				free(completpath);
+				char *fullpath = malloc(strlen(path) + strlen(entry->d_name) + 2);
+				sprintf(fullpath, "%s/%s", path, entry->d_name);
+				_pilot_mods_load_lib(fullpath, flags, appid, type, version);
+				free(fullpath);
 			}
 		}
 	}
