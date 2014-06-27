@@ -22,7 +22,9 @@ _pilot_mods_internal_create(char *name, void *handle, struct pilot_mods *mods);
 static int
 _pilot_mods_load_dir(long flags, short appid, short type, short version);
 static int
-_pilot_mods_load_lib(char *name, long flags, short appid, short type, short version);
+_pilot_mods_load(char *name, long flags, short appid, short type, short version);
+static void *
+_pilot_mods_load_lib(char *name);
 static int
 _pilot_mods_check(struct pilot_mods *mods, short type, short version);
 
@@ -74,12 +76,11 @@ _pilot_mods_load_dir(long flags, short appid, short type, short version)
 	return ret;
 }
 
-static int
-_pilot_mods_load_lib(char *name, long flags, short appid, short type, short version)
+static void *
+_pilot_mods_load_lib(char *name)
 {
 	void *handle;
-	struct pilot_mods *info;
-	int ret = 0;
+
 	char *fullpath = NULL;
 
 	fullpath = malloc(strlen(g_mods_path) + strlen(name) + 2);
@@ -90,8 +91,19 @@ _pilot_mods_load_lib(char *name, long flags, short appid, short type, short vers
 	if (!handle)
 	{
 		LOG_DEBUG("error on plugin loading err : %s\n",dlerror());
-		return -errno;
+		return NULL;
 	}
+	return handle;
+}
+
+static int
+_pilot_mods_load(char *name, long flags, short appid, short type, short version)
+{
+	void *handle;
+	struct pilot_mods *info;
+	int ret = 0;
+
+	handle = _pilot_mods_load_lib(name);
 
 	info = dlsym(handle, PILOT_MODS_INFO);
 	if (info != NULL)
@@ -148,6 +160,9 @@ pilot_mods_get(char *name)
 	{
 		mods = pilot_list_next(g_mods);
 	}
+	if (!mods->handle)
+		mods->handle = _pilot_mods_load_lib(mods->name);
+
 	return mods->mods;
 }
 
@@ -159,6 +174,9 @@ pilot_mods_first(short type, short version)
 	{
 		mods = pilot_list_next(g_mods);
 	}
+	if (!mods->handle)
+		mods->handle = _pilot_mods_load_lib(mods->name);
+
 	return mods->mods;
 }
 
@@ -170,5 +188,8 @@ pilot_mods_next(short type, short version)
 	{
 		mods = pilot_list_next(g_mods);
 	}
+	if (!mods->handle)
+		mods->handle = _pilot_mods_load_lib(mods->name);
+
 	return mods->mods;
 }
