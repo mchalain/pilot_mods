@@ -29,6 +29,7 @@ struct _pilot_mods_internal
 };
 static _pilot_list(_pilot_mods_internal, g_mods); 
 static _pilot_list(pilot_string, g_modnames); 
+static char *g_mods_path = NULL;
 
 static struct _pilot_mods_internal *
 _pilot_mods_internal_create(void *handle, struct pilot_mods *mods);
@@ -42,7 +43,16 @@ _pilot_mods_check(struct pilot_mods *mods, short type, short version);
 int
 pilot_mods_load(char *path, long flags, short appid, short type, short version)
 {
-	return _pilot_mods_load_dir(path, flags, appid, type, version);
+	if (!g_mods_path && path)
+	{
+		g_mods_path = malloc(strlen(path)+1);
+		strcpy(g_mods_path, path);
+	}
+	if (!g_mods_path)
+		return -1;
+	if (path && strcmp(g_mods_path, path))
+		return -1;
+	return _pilot_mods_load_dir(g_mods_path, flags, appid, type, version);
 }
 
 static struct _pilot_mods_internal *
