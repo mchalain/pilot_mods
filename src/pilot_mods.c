@@ -35,7 +35,7 @@ _pilot_mods_internal_create(void *handle, struct pilot_mods *mods);
 static int
 _pilot_mods_load_dir(char *path, long flags, short appid, short type, short version);
 static int
-_pilot_mods_load_lib(char *path, long flags, short appid, short type, short version);
+_pilot_mods_load_lib(char *path, char *name, long flags, short appid, short type, short version);
 static int
 _pilot_mods_check(struct pilot_mods *mods, short type, short version);
 
@@ -77,10 +77,7 @@ _pilot_mods_load_dir(char *path, long flags, short appid, short type, short vers
 			}
 			else
 			{
-				char *fullpath = malloc(strlen(path) + strlen(entry->d_name) + 2);
-				sprintf(fullpath, "%s/%s", path, entry->d_name);
-				_pilot_mods_load_lib(fullpath, flags, appid, type, version);
-				free(fullpath);
+				_pilot_mods_load_lib(path, entry->d_name, flags, appid, type, version);
 			}
 		}
 	}
@@ -88,13 +85,18 @@ _pilot_mods_load_dir(char *path, long flags, short appid, short type, short vers
 }
 
 static int
-_pilot_mods_load_lib(char *path, long flags, short appid, short type, short version)
+_pilot_mods_load_lib(char *path, char *name, long flags, short appid, short type, short version)
 {
 	void *handle;
 	struct pilot_mods *info;
 	int ret = 0;
+	char *fullpath = NULL;
 
-	handle = dlopen(path, RTLD_LAZY);
+	fullpath = malloc(strlen(path) + strlen(name) + 2);
+	sprintf(fullpath, "%s/%s", path, name);
+
+	handle = dlopen(fullpath, RTLD_LAZY);
+	free(fullpath);
 	if (!handle)
 	{
 		LOG_DEBUG("error on plugin loading err : %s\n",dlerror());
