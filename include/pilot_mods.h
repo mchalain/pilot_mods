@@ -4,6 +4,7 @@
 #define PILOT_MODS_INFO "pilot_mods_info"
 struct pilot_mods
 {
+	char *name;
 	short appid;
 	short flags;
 	short type;
