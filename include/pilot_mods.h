@@ -18,6 +18,8 @@ struct pilot_mods
 int
 pilot_mods_load(char *path, long flags, short appid, short type, short version);
 struct pilot_mods *
+pilot_mods_get(char *name);
+struct pilot_mods *
 pilot_mods_first(short type, short version);
 struct pilot_mods *
 pilot_mods_next(short type, short version);
