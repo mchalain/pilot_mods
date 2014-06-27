@@ -70,12 +70,9 @@ _pilot_mods_load_dir(char *path, long flags, short appid, short type, short vers
 	{
 		if (strstr(entry->d_name, ".so") != NULL)
 		{
-			if (flags && PILOT_MODS_FLAGSLAZY)
-			{
-				struct pilot_string *name = pilot_string_create(entry->d_name, 0);
-				pilot_list_append(g_modnames, name);
-			}
-			else
+			struct pilot_string *name = pilot_string_create(entry->d_name, 0);
+			pilot_list_append(g_modnames, name);
+			if (!(flags & PILOT_MODS_FLAGSLAZY))
 			{
 				_pilot_mods_load_lib(path, entry->d_name, flags, appid, type, version);
 			}
