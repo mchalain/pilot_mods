@@ -7,6 +7,7 @@
 
 #include <pilot_mods.h>
 #include <pilot_list.h>
+#include <pilot_log.h>
 
 struct _pilot_mods_internal
 {
@@ -50,7 +51,7 @@ _pilot_mods_internal_create(char *name, void *handle, struct pilot_mods *mods)
 {
 		struct _pilot_mods_internal *thiz = malloc(sizeof(*thiz));
 		thiz->name = malloc(strlen(name)+1);
-		strcopy(thiz->name, name);
+		strcpy(thiz->name, name);
 		thiz->handle = handle;
 		thiz->mods = mods;
 		return thiz;
@@ -65,7 +66,7 @@ _pilot_mods_load_dir(long flags, short type, short version)
 	dir = opendir(g_mods_path);
 	if (dir == NULL)
 	{
-		LOG_DEBUG("%s", strerror(errno));
+		LOG_DEBUG("%s %s", g_mods_path, strerror(errno));
 		return -errno;
 	}
 	while ((entry = readdir(dir)) != NULL)
@@ -157,41 +158,53 @@ _pilot_mods_check(struct pilot_mods *mods, short type, short version)
 struct pilot_mods *
 pilot_mods_get(char *name)
 {
+	struct pilot_mods *module = NULL;
 	struct _pilot_mods_internal *mods = pilot_list_first(g_mods);
-	while (strcmp(mods->name, name))
+	while (mods && strcmp(mods->name, name))
 	{
 		mods = pilot_list_next(g_mods);
 	}
-	if (!mods->handle)
-		mods->handle = _pilot_mods_load_lib(mods->name);
-
-	return mods->mods;
+	if (mods)
+	{
+		if (!mods->handle)
+			mods->handle = _pilot_mods_load_lib(mods->name);
+		module = mods->mods;
+	}
+	return module;
 }
 
 struct pilot_mods *
 pilot_mods_first(short type, short version)
 {
+	struct pilot_mods *module = NULL;
 	struct _pilot_mods_internal *mods = pilot_list_first(g_mods);
-	while (_pilot_mods_check(mods->mods, type, version))
+	while (mods && _pilot_mods_check(mods->mods, type, version))
 	{
 		mods = pilot_list_next(g_mods);
 	}
-	if (!mods->handle)
-		mods->handle = _pilot_mods_load_lib(mods->name);
-
-	return mods->mods;
+	if (mods)
+	{
+		if (!mods->handle)
+			mods->handle = _pilot_mods_load_lib(mods->name);
+		module = mods->mods;
+	}
+	return module;
 }
 
 struct pilot_mods *
 pilot_mods_next(short type, short version)
 {
+	struct pilot_mods *module = NULL;
 	struct _pilot_mods_internal *mods = pilot_list_next(g_mods);
-	while (_pilot_mods_check(mods->mods, type, version))
+	while (mods && _pilot_mods_check(mods->mods, type, version))
 	{
 		mods = pilot_list_next(g_mods);
 	}
-	if (!mods->handle)
-		mods->handle = _pilot_mods_load_lib(mods->name);
-
-	return mods->mods;
+	if (mods)
+	{
+		if (!mods->handle)
+			mods->handle = _pilot_mods_load_lib(mods->name);
+		module = mods->mods;
+	}
+	return module;
 }
