@@ -8,20 +8,6 @@
 #include <pilot_mods.h>
 #include <pilot_list.h>
 
-struct pilot_string
-{
-	char *data;
-};
-
-struct pilot_string *
-pilot_string_create(char *value, int flags)
-{
-	struct pilot_string *thiz = malloc(sizeof(*thiz) + strlen(value) + 1);
-	thiz->data = ((char *)thiz) + sizeof(*thiz);
-	strcpy(thiz->data, value);
-	return thiz;
-}
-
 struct _pilot_mods_internal
 {
 	char *name;
@@ -29,11 +15,10 @@ struct _pilot_mods_internal
 	struct pilot_mods *mods;
 };
 static _pilot_list(_pilot_mods_internal, g_mods); 
-static _pilot_list(pilot_string, g_modnames); 
 static char *g_mods_path = NULL;
 
 static struct _pilot_mods_internal *
-_pilot_mods_internal_create(void *handle, struct pilot_mods *mods);
+_pilot_mods_internal_create(char *name, void *handle, struct pilot_mods *mods);
 static int
 _pilot_mods_load_dir(long flags, short appid, short type, short version);
 static int
@@ -83,9 +68,7 @@ _pilot_mods_load_dir(long flags, short appid, short type, short version)
 	{
 		if (strstr(entry->d_name, ".so") != NULL)
 		{
-			struct pilot_string *name = pilot_string_create(entry->d_name, 0);
-			pilot_list_append(g_modnames, name);
-			_pilot_mods_load_lib(entry->d_name, flags, appid, type, version);
+			_pilot_mods_load(entry->d_name, flags, appid, type, version);
 		}
 	}
 	return ret;
@@ -109,6 +92,7 @@ _pilot_mods_load_lib(char *name, long flags, short appid, short type, short vers
 		LOG_DEBUG("error on plugin loading err : %s\n",dlerror());
 		return -errno;
 	}
+
 	info = dlsym(handle, PILOT_MODS_INFO);
 	if (info != NULL)
 	{
@@ -160,7 +144,7 @@ struct pilot_mods *
 pilot_mods_get(char *name)
 {
 	struct _pilot_mods_internal *mods = pilot_list_first(g_mods);
-	while (strcmp(mods->mods->name, name))
+	while (strcmp(mods->name, name))
 	{
 		mods = pilot_list_next(g_mods);
 	}
