@@ -112,13 +112,13 @@ _pilot_mods_load(char *name, long flags, short type, short version)
 	{
 		if (_pilot_mods_check(info, type, version))
 		{
-			dclose(handle);
+			dlclose(handle);
 			return -1;
 		}
 
 		if (flags & PILOT_MODS_FLAGSLAZY)
 		{
-			dclose(handle);
+			dlclose(handle);
 			handle = NULL;
 		}
 		struct _pilot_mods_internal *mods = 
@@ -127,7 +127,7 @@ _pilot_mods_load(char *name, long flags, short type, short version)
 	}
 	else
 	{
-		dclose(handle);
+		dlclose(handle);
 		ret = -errno;
 	}
 	return ret;
