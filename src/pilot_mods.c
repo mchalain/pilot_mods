@@ -21,7 +21,7 @@ static char *g_mods_path = NULL;
 static int g_mods_appid = -1;
 
 static struct _pilot_mods_internal *
-_pilot_mods_internal_create(char *path, char *name, void *handle, struct pilot_mods *mods);
+_pilot_mods_internal_create(char *path, char *name, void *handle, struct pilot_mods *module);
 static int
 _pilot_mods_load_dir(char *path, long flags, short type, short version);
 static int
@@ -39,13 +39,13 @@ pilot_mods_load(char *path, long flags, short appid, short type, short version)
 }
 
 static struct _pilot_mods_internal *
-_pilot_mods_internal_create(char *path, char *name, void *handle, struct pilot_mods *mods)
+_pilot_mods_internal_create(char *path, char *name, void *handle, struct pilot_mods *module)
 {
 		struct _pilot_mods_internal *thiz = malloc(sizeof(*thiz));
 		thiz->path = strdup(path);
 		thiz->name = strdup(name);
 		thiz->handle = handle;
-		thiz->mods = mods;
+		thiz->module = module;
 		return thiz;
 }
 
@@ -127,20 +127,20 @@ _pilot_mods_load(char *path, char *name, long flags, short type, short version)
 }
 
 static int
-_pilot_mods_check(struct pilot_mods *mods, short type, short version)
+_pilot_mods_check(struct pilot_mods *module, short type, short version)
 {
 	int ret = 0;
-	if (mods->appid != g_mods_appid)
+	if (module->appid != g_mods_appid)
 	{
 		ret = -1;
 	}
-	if ((type != 0) && (mods->type != type))
+	if ((type != 0) && (module->type != type))
 	{
 		ret = -1;
 	}
 	if ((version != 0) &&
-			(((version && 0xFF00) != (mods->version && 0xFF00)) ||
-			((version && 0x00FF) < (mods->version && 0x00FF))))
+			(((version && 0xFF00) != (module->version && 0xFF00)) ||
+			((version && 0x00FF) < (module->version && 0x00FF))))
 	{
 		ret = -1;
 	}
@@ -152,7 +152,7 @@ pilot_mods_get(char *name)
 {
 	struct pilot_mods *module = NULL;
 	struct _pilot_mods_internal *mods = pilot_list_first(g_mods);
-	while (mods && strcmp(mods->mods->name, name))
+	while (mods && strcmp(mods->module->name, name))
 	{
 		mods = pilot_list_next(g_mods);
 	}
@@ -160,7 +160,7 @@ pilot_mods_get(char *name)
 	{
 		if (!mods->handle)
 			mods->handle = _pilot_mods_load_lib(mods->path, mods->name);
-		module = mods->mods;
+		module = mods->module;
 	}
 	return module;
 }
@@ -170,7 +170,7 @@ pilot_mods_first(short type, short version)
 {
 	struct pilot_mods *module = NULL;
 	struct _pilot_mods_internal *mods = pilot_list_first(g_mods);
-	while (mods && _pilot_mods_check(mods->mods, type, version))
+	while (mods && _pilot_mods_check(mods->module, type, version))
 	{
 		mods = pilot_list_next(g_mods);
 	}
@@ -178,7 +178,7 @@ pilot_mods_first(short type, short version)
 	{
 		if (!mods->handle)
 			mods->handle = _pilot_mods_load_lib(mods->path, mods->name);
-		module = mods->mods;
+		module = mods->module;
 	}
 	return module;
 }
@@ -188,7 +188,7 @@ pilot_mods_next(short type, short version)
 {
 	struct pilot_mods *module = NULL;
 	struct _pilot_mods_internal *mods = pilot_list_next(g_mods);
-	while (mods && _pilot_mods_check(mods->mods, type, version))
+	while (mods && _pilot_mods_check(mods->module, type, version))
 	{
 		mods = pilot_list_next(g_mods);
 	}
@@ -196,7 +196,7 @@ pilot_mods_next(short type, short version)
 	{
 		if (!mods->handle)
 			mods->handle = _pilot_mods_load_lib(mods->path, mods->name);
-		module = mods->mods;
+		module = mods->module;
 	}
 	return module;
 }
