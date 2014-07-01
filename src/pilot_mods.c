@@ -152,7 +152,7 @@ pilot_mods_get(char *name)
 {
 	struct pilot_mods *module = NULL;
 	struct _pilot_mods_internal *mods = pilot_list_first(g_mods);
-	while (mods && strcmp(mods->name, name))
+	while (mods && strcmp(mods->mods->name, name))
 	{
 		mods = pilot_list_next(g_mods);
 	}
