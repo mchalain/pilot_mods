@@ -11,83 +11,75 @@
 
 struct _pilot_mods_internal
 {
+	char *path;
 	char *name;
 	void *handle;
-	struct pilot_mods *mods;
+	struct pilot_mods *module;
 };
 static _pilot_list(_pilot_mods_internal, g_mods); 
 static char *g_mods_path = NULL;
 static int g_mods_appid = -1;
 
 static struct _pilot_mods_internal *
-_pilot_mods_internal_create(char *name, void *handle, struct pilot_mods *mods);
+_pilot_mods_internal_create(char *path, char *name, void *handle, struct pilot_mods *mods);
 static int
-_pilot_mods_load_dir(long flags, short type, short version);
+_pilot_mods_load_dir(char *path, long flags, short type, short version);
 static int
-_pilot_mods_load(char *name, long flags, short type, short version);
+_pilot_mods_load(char *path, char *name, long flags, short type, short version);
 static void *
-_pilot_mods_load_lib(char *name);
+_pilot_mods_load_lib(char *path, char *name);
 static int
 _pilot_mods_check(struct pilot_mods *mods, short type, short version);
 
 int
 pilot_mods_load(char *path, long flags, short appid, short type, short version)
 {
-	if (!g_mods_path && path)
-	{
-		g_mods_path = malloc(strlen(path)+1);
-		strcpy(g_mods_path, path);
-	}
-	if (!g_mods_path)
-		return -1;
-	if (path && strcmp(g_mods_path, path))
-		return -1;
 	g_mods_appid = appid;
-	return _pilot_mods_load_dir(flags, type, version);
+	return _pilot_mods_load_dir(path, flags, type, version);
 }
 
 static struct _pilot_mods_internal *
-_pilot_mods_internal_create(char *name, void *handle, struct pilot_mods *mods)
+_pilot_mods_internal_create(char *path, char *name, void *handle, struct pilot_mods *mods)
 {
 		struct _pilot_mods_internal *thiz = malloc(sizeof(*thiz));
-		thiz->name = malloc(strlen(name)+1);
-		strcpy(thiz->name, name);
+		thiz->path = strdup(path);
+		thiz->name = strdup(name);
 		thiz->handle = handle;
 		thiz->mods = mods;
 		return thiz;
 }
 
 static int
-_pilot_mods_load_dir(long flags, short type, short version)
+_pilot_mods_load_dir(char *path, long flags, short type, short version)
 {
 	int ret = 0;
 	DIR *dir = NULL;
 	struct dirent *entry;
-	dir = opendir(g_mods_path);
+	dir = opendir(path);
 	if (dir == NULL)
 	{
-		LOG_DEBUG("%s %s", g_mods_path, strerror(errno));
+		LOG_DEBUG("%s %s", path, strerror(errno));
 		return -errno;
 	}
 	while ((entry = readdir(dir)) != NULL)
 	{
 		if (strstr(entry->d_name, ".so") != NULL)
 		{
-			_pilot_mods_load(entry->d_name, flags, type, version);
+			_pilot_mods_load(path, entry->d_name, flags, type, version);
 		}
 	}
 	return ret;
 }
 
 static void *
-_pilot_mods_load_lib(char *name)
+_pilot_mods_load_lib(char *path, char *name)
 {
 	void *handle;
 
 	char *fullpath = NULL;
 
-	fullpath = malloc(strlen(g_mods_path) + strlen(name) + 2);
-	sprintf(fullpath, "%s/%s", g_mods_path, name);
+	fullpath = malloc(strlen(path) + strlen(name) + 2);
+	sprintf(fullpath, "%s/%s", path, name);
 
 	handle = dlopen(fullpath, RTLD_LAZY);
 	free(fullpath);
@@ -100,13 +92,13 @@ _pilot_mods_load_lib(char *name)
 }
 
 static int
-_pilot_mods_load(char *name, long flags, short type, short version)
+_pilot_mods_load(char *path, char *name, long flags, short type, short version)
 {
 	void *handle;
 	struct pilot_mods *info;
 	int ret = 0;
 
-	handle = _pilot_mods_load_lib(name);
+	handle = _pilot_mods_load_lib(path, name);
 
 	info = dlsym(handle, PILOT_MODS_INFO);
 	if (info != NULL)
@@ -123,7 +115,7 @@ _pilot_mods_load(char *name, long flags, short type, short version)
 			handle = NULL;
 		}
 		struct _pilot_mods_internal *mods = 
-			_pilot_mods_internal_create(name, handle, info);
+			_pilot_mods_internal_create(path, name, handle, info);
 		pilot_list_append(g_mods, mods);
 	}
 	else
@@ -167,7 +159,7 @@ pilot_mods_get(char *name)
 	if (mods)
 	{
 		if (!mods->handle)
-			mods->handle = _pilot_mods_load_lib(mods->name);
+			mods->handle = _pilot_mods_load_lib(mods->path, mods->name);
 		module = mods->mods;
 	}
 	return module;
@@ -185,7 +177,7 @@ pilot_mods_first(short type, short version)
 	if (mods)
 	{
 		if (!mods->handle)
-			mods->handle = _pilot_mods_load_lib(mods->name);
+			mods->handle = _pilot_mods_load_lib(mods->path, mods->name);
 		module = mods->mods;
 	}
 	return module;
@@ -203,7 +195,7 @@ pilot_mods_next(short type, short version)
 	if (mods)
 	{
 		if (!mods->handle)
-			mods->handle = _pilot_mods_load_lib(mods->name);
+			mods->handle = _pilot_mods_load_lib(mods->path, mods->name);
 		module = mods->mods;
 	}
 	return module;
